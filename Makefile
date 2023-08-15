@@ -15,7 +15,7 @@ SRC_PATH := src
 DBG_PATH := debug
 
 # compile macros
-TARGET_NAME := c-logger
+TARGET_NAME := iodemux
 ifeq ($(OS),Windows_NT)
 	TARGET_NAME := $(addsuffix .exe,$(TARGET_NAME))
 endif
@@ -31,8 +31,8 @@ OBJ_DEBUG := $(addprefix $(DBG_PATH)/, $(addsuffix .o, $(notdir $(basename $(SRC
 DISTCLEAN_LIST := $(OBJ) \
                   $(OBJ_DEBUG)
 CLEAN_LIST := $(TARGET) \
-			  $(TARGET_DEBUG) \
-			  $(DISTCLEAN_LIST)
+              $(TARGET_DEBUG) \
+	      $(DISTCLEAN_LIST)
 
 # default rule
 default: makedir all
@@ -78,4 +78,4 @@ distclean:
 	@rm -f $(DISTCLEAN_LIST)
 
 run: $(TARGET)
-	@./$(TARGET) test-arg1 test-arg_2
+	@./$(TARGET) ls -alh

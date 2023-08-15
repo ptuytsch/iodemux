@@ -97,12 +97,15 @@ int main(int argc, char **argv)
 	(void)write(fileno(stderr), msg, strlen(msg));
 
 
+	/*
 	char * const arg[] = {
 	    "-ah",
 	    "-l",
 	    NULL
 	};
 	int ret = execvp("ls", arg);
+	*/
+	int ret = execvp(argv[1], &argv[1]);
 	if (ret == -1) {
 	    perror("execvp");
 	}
