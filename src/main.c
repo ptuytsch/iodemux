@@ -93,9 +93,21 @@ int main(int argc, char **argv)
 	// this should be read by the other end of hte pipe
 	// this will also not be printed when the other end does not read the pipe
 	printf(" -*****- hello from child PID = %d -*****-\n", pid);
-
 	char *msg =  " -*****- CHILD DONE! -*****-\n";
 	(void)write(fileno(stderr), msg, strlen(msg));
+
+
+	char * const arg[] = {
+	    "-ah",
+	    "-l",
+	    NULL
+	};
+	int ret = execvp("ls", arg);
+	if (ret == -1) {
+	    perror("execvp");
+	}
+
+
     }
 
     return 0;
