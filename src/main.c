@@ -4,46 +4,22 @@
 #include "stringdyn.h"
 
 #define BUF_INPUT_STR_SIZE 512
-#define INPUT_PROMPT_TEXT ">>> "
+#define INPUT_PROMPT_TEXT ">>>"
+#define INPUT_PROMPT_TEXT_LENGTH (strlen(INPUT_PROMPT_TEXT))
 
 
 
 int main(int argc, char **argv)
 {
     printf("-----------------------------------\n");
-    // struct inputstring *inputstr;
-    // inputstr = inputstring_new("testerken");
-    // printf("-----------------------------------\n");
-    // printf("content = %s\n", inputstring_get_cstring(inputstr));
-    // printf("-----------------------------------\n");
-    // inputstring_concat_cstring(inputstr, " Dit is een test.");
-    // printf("-----------------------------------\n");
-    // printf("content = %s\n", inputstring_get_cstring(inputstr));
-    // printf("-----------------------------------\n");
-    // inputstring_append_char(inputstr,'t');
-    // printf("-----------------------------------\n");
-    // printf("content = %s\n", inputstring_get_cstring(inputstr));
-    // printf("-----------------------------------\n");
-    // inputstring_concat_cstring(inputstr, "very long string to go over the limit....");
-    // printf("-----------------------------------\n");
-    // printf("content = %s\n", inputstring_get_cstring(inputstr));
-    // printf("-----------------------------------\n");
-    // inputstring_insert_char(inputstr,'@', 2);
-    // printf("-----------------------------------\n");
-    // printf("content = %s\n", inputstring_get_cstring(inputstr));
-    // printf("-----------------------------------\n");
-    // inputstring_insert_cstring(inputstr,"####", 5);
-    // printf("-----------------------------------\n");
-    // printf("content = %s\n", inputstring_get_cstring(inputstr));
-    // printf("-----------------------------------\n");
-    // inputstring_print_internals(inputstr);
-    // return 0;
 
     initscr();
     clear();
-    curs_set(0);
-    WINDOW *ioscreen = newwin(LINES - 10, COLS-4, 1, 2);
-    WINDOW *inputscreen = newwin(5, COLS-4, LINES - 7, 2);
+    curs_set(1);
+    WINDOW *ioscreen = newwin(LINES - 4, COLS, 0, 0);
+    WINDOW *inputscreen = newwin(2, COLS, LINES -2, 0);
+    move(LINES - 4, 0);
+    hline('=', COLS);
     // wrefresh(ioscreen);
     // wrefresh(inputscreen);
     // refresh();
@@ -58,17 +34,16 @@ int main(int argc, char **argv)
 
     scrollok(ioscreen, true);
 
-    wclear(inputscreen);
-
     // box(inputscreen, 0, 0);
     // box(inputscreen, '-', '|');
     // wborder(inputscreen, '|', '|', '-', '-', '+', '+', '+', '+');
 
-    wrefresh(ioscreen);
-    wrefresh(inputscreen);
-    refresh();
-    wmove(inputscreen, 1, 1);
-    wprintw(inputscreen, INPUT_PROMPT_TEXT);
+    // wrefresh(ioscreen);
+    // wrefresh(inputscreen);
+    // refresh();
+    // wmove(inputscreen, 1, 1);
+    // wprintw(inputscreen, INPUT_PROMPT_TEXT);
+    // wmove(inputscreen, 0, INPUT_PROMPT_TEXT_LENGTH);
 
 
     // char buff[BUF_INPUT_STR_SIZE];
@@ -77,75 +52,73 @@ int main(int argc, char **argv)
     int position = 0;
 
 
-    // mvwgetnstr(inputscreen, 0, 1, buff, BUF_INPUT_STR_SIZE);
-    // wrefresh(ioscreen);
-    // wprintw(ioscreen, "The entered string is: %s\n", buff);
-    // wrefresh(ioscreen);
     int ch;
     int x, y;
     for (;;) {
-    // box(ioscreen, 0, 0);
-    // box(inputscreen, 0, 0);
-    // int ch = getch();
-    ch = wgetch(inputscreen);
-    // wprintw(ioscreen, "KEY = %d\n", ch);
-    switch (ch) {
-    case KEY_ENTER:
-    case 10:
-        wprintw(ioscreen, "The entered command is: `%s`\n", inputstring_get_cstring(inputstr));
-	position = 0;
-        inputstring_reset(inputstr);
-        wclear(inputscreen);
-        wprintw(inputscreen, INPUT_PROMPT_TEXT);
-        break;
-    case KEY_UP:
-        wprintw(ioscreen, "up\n");
-        break;
-    case KEY_DOWN:
-        wprintw(ioscreen, "down\n");
-        break;
-    case KEY_LEFT:
-        wprintw(ioscreen, "LEFT\n");
-        if (position > 0) position--;
-        else beep();
-        break;
-    case KEY_RIGHT:
-        wprintw(ioscreen, "RIGHT\n");
-        if (position < inputstring_get_length(inputstr)) position++;
-        else beep();
-        break;
-    
-    case KEY_BACKSPACE:
-    case 127:
-    case '\b':
-        wprintw(ioscreen, "BACKSPACE\n");
-	inputstring_delete_char(inputstr, position);
-	position--;
-        // getyx(inputscreen, y, x);
-        // mvwinch(inputscreen, y, x - 1);
-        // waddch(inputscreen, ' ');
-        // mvwinch(inputscreen, y, x - 1);
-        // buff[buff_index--] = '\0';
-        break;
-    default:
-        wprintw(ioscreen, "CHAR: %d\n", ch);
-	inputstring_insert_char(inputstr, ch, position);
-	position++;
-        // buff[buff_index] = ch;
-        // buff_index++;
-        // buff[buff_index] = '\0';
-        // wmove(inputscreen, 0, buff_index + 5);
-    
-        // waddch(inputscreen, ch);
-        break;
-    
-    }
-    // wmove(inputscreen, 1, buff_index + 2);
-    wclear(inputscreen);
-    wprintw(inputscreen, INPUT_PROMPT_TEXT" %s", inputstring_get_cstring(inputstr));
-    wrefresh(ioscreen);
-    wrefresh(inputscreen);
-    refresh();
+	wclear(inputscreen);
+	wrefresh(ioscreen);
+	wrefresh(inputscreen);
+	refresh();
+	wprintw(inputscreen, INPUT_PROMPT_TEXT" %s", inputstring_get_cstring(inputstr));
+	// wmove(inputscreen, 1, INPUT_PROMPT_TEXT_LENGTH + 2 + position);
+	// wprintw(inputscreen, "^");
+	wmove(inputscreen, 0, INPUT_PROMPT_TEXT_LENGTH + position + 1);  //place the cursor behind the cursor
+	// box(ioscreen, 0, 0);
+	// box(inputscreen, 0, 0);
+	// int ch = getch();
+	ch = wgetch(inputscreen);
+	// wprintw(ioscreen, "KEY = %d\n", ch);
+	switch (ch) {
+	case KEY_ENTER:
+	case 10:
+	    wprintw(ioscreen, "The entered command is: `%s`\n", inputstring_get_cstring(inputstr));
+	    position = 0;
+	    inputstring_reset(inputstr);
+	    wclear(inputscreen);
+	    wprintw(inputscreen, INPUT_PROMPT_TEXT);
+	    break;
+	case KEY_UP:
+	    wprintw(ioscreen, "up\n");
+	    break;
+	case KEY_DOWN:
+	    wprintw(ioscreen, "down\n");
+	    break;
+	case KEY_HOME:
+	    wprintw(ioscreen, "HOME\n");
+	    position = 0;
+	    break;
+	case KEY_END:
+	    wprintw(ioscreen, "END\n");
+	    position = inputstring_get_length(inputstr);
+	    break;
+	case KEY_LEFT:
+	    wprintw(ioscreen, "LEFT\n");
+	    if (position > 0) position--;
+	    else beep();
+	    break;
+	case KEY_RIGHT:
+	    wprintw(ioscreen, "RIGHT\n");
+	    if (position < inputstring_get_length(inputstr)) position++;
+	    else beep();
+	    break;
+	
+	case KEY_BACKSPACE:
+	case 127:
+	case '\b':
+	    wprintw(ioscreen, "BACKSPACE\n");
+	    if (position > 0) {
+		inputstring_delete_char(inputstr, position);
+		position--;
+	    }
+	    else beep();
+	    break;
+	default:
+	    wprintw(ioscreen, "CHAR: %d\n", ch);
+	    inputstring_insert_char(inputstr, ch, position);
+	    position++;
+	    break;
+	
+	}
     }
     endwin();
 }

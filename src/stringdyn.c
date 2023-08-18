@@ -127,6 +127,7 @@ int inputstring_delete_char(struct inputstring *self, size_t position)
     memmove(self->content + position - 1,
             self->content + position,
             self->length - position + 1);  // one plus for the ending char
+    self->length--;
     return 0;
 }
 
