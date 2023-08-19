@@ -152,13 +152,11 @@ struct inputstring * inputstring_new(const char * str)
     if (ret != 0) {
         return NULL;
     }
-    inputstring_print_internals(self);
 
     ret = inputstring_concat_cstring(self, str);
     if (ret != 0) {
         return NULL;
     }
-    inputstring_print_internals(self);
 
     return self;
 }

@@ -78,4 +78,5 @@ distclean:
 	@rm -f $(DISTCLEAN_LIST)
 
 run: $(TARGET)
-	@./$(TARGET) ls -alh
+	#@./$(TARGET) ls -alh --color
+	@./$(TARGET) python test.py
