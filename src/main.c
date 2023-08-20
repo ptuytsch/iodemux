@@ -87,10 +87,6 @@ int main(int argc, char **argv)
 	dup2(stderr_pipe[1], fileno(stderr));
 	close(stderr_pipe[1]);
 
-	// this should be read by the other end of hte pipe
-	// this will also not be printed when the other end does not read the pipe
-	// printf(" -*****- hello from child -*****-\n");
-
 	fprintf(stderr, "Running the following command\n");
 	fprintf(stderr, " - argv[0] = %s\n", argv[1]);
 	for (int i = 2; argv[i] != NULL; i++) {
@@ -182,8 +178,6 @@ void start_parent_app(int stdin_fd, int stdout_fd, int stderr_fd)
     refresh();
 
 
-
-
     while(num_open_fds > 0) {
 	print_debug(ioscreen, " ----- POLL ----- \n");
 	ready = poll(pfds, nfds, -1);
@@ -232,14 +226,6 @@ void start_parent_app(int stdin_fd, int stdout_fd, int stderr_fd)
 		    wmove(inputscreen, 0, INPUT_PROMPT_TEXT_LENGTH + position + 1);  //place the cursor behind the cursor
 		    wrefresh(inputscreen);
 		}
-		// n = read(stderr_fd, buffer, 1024);
-		// buffer[n] = '\0';
-		// // printf("Read %d stderr characters: \n%s\n", n, buffer);
-		// // wprintw(ioscreen, "Read %d stderr characters: \n%s\n", n, buffer);
-		// wprintw(ioscreen, "%s", buffer);
-		// wmove(inputscreen, 0, INPUT_PROMPT_TEXT_LENGTH + position + 1);  //place the cursor behind the cursor
-		// wrefresh(ioscreen);
-		// wrefresh(inputscreen);
 	    }
 	    if (pfds[1].revents & POLLHUP) {
 		print_debug(ioscreen, "STDERR pipe closed\n");
@@ -254,15 +240,13 @@ void start_parent_app(int stdin_fd, int stdout_fd, int stderr_fd)
 		   (pfds[2].revents & POLLHUP) ? "POLLHUP " : "",
 		   (pfds[2].revents & POLLERR) ? "POLLERR " : "");
 	    if (pfds[2].revents & POLLIN) {
-		// n = read(stderr_fd, buffer, 1024);
-		// buffer[n] = '\0';
-		// printf("Read %d stderr characters: \n%s\n", n, buffer);
 
 		ch = getch();
 		switch (ch) {
 		case KEY_ENTER:
 		case 10:
 		    write(stdin_fd, inputstring_get_cstring(inputstr), inputstring_get_length(inputstr));
+		    write(stdin_fd, "\n", 1);
 		    // wprintw(ioscreen, "The entered command is: `%s`\n", inputstring_get_cstring(inputstr));
 		    position = 0;
 		    inputstring_reset(inputstr);
