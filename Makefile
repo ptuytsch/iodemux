@@ -1,11 +1,11 @@
 # tool macros
-CC ?= gcc
-CXX ?= gcc
+CC := gcc
+CXX := gcc
 # CFLAGS := -O3 -Wextra -Wall -Werror
 # CXXFLAGS := -O3 -Wextra -Wall -Werror
-CFLAGS := -O3 -lncurses
-CXXFLAGS := -O3
-DBGFLAGS := -g
+CFLAGS := -lncurses
+CXXFLAGS :=
+DBGFLAGS := -ggdb
 COBJFLAGS := $(CFLAGS) -c
 
 # path macros
@@ -54,7 +54,7 @@ $(DBG_PATH)/%.o: $(SRC_PATH)/%.c*
 	$(CC) $(COBJFLAGS) $(DBGFLAGS) -o $@ $<
 
 $(TARGET_DEBUG): $(OBJ_DEBUG)
-	$(CC) $(CFLAGS) $(DBGFLAGS) $(OBJ_DEBUG) -o $@
+	$(CC) -o $@ $(OBJ_DEBUG) $(CFLAGS) $(DBGFLAGS)
 
 # phony rules
 .PHONY: makedir

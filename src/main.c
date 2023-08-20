@@ -89,27 +89,20 @@ int main(int argc, char **argv)
 
 	// this should be read by the other end of hte pipe
 	// this will also not be printed when the other end does not read the pipe
-	printf(" -*****- hello from child -*****-\n");
+	// printf(" -*****- hello from child -*****-\n");
 
-	fprintf(stderr, " - argv[1] = %s", argv[1]);
+	fprintf(stderr, "Running the following command\n");
+	fprintf(stderr, " - argv[0] = %s\n", argv[1]);
 	for (int i = 2; argv[i] != NULL; i++) {
-	    fprintf(stderr, " - argv[%d] = %s", i, argv[i]);
+	    fprintf(stderr, " - argv[%d] = %s\n", i - 1, argv[i]);
 	}
-
-	fprintf(stderr, " -*****- exec -*****-\n");
-
+	fprintf(stderr, "-------------------\n");
 
 	int ret = execvp(argv[1], &argv[1]);
 	if (ret == -1) {
 	    fprintf(stderr, " -*****- error exec -*****-\n");
 	    perror("execvp");
 	}
-	fprintf(stderr, " -*****exec done -*****-\n");
-	fprintf(stderr, " -*****- end from child ret = %d -*****-\n", ret);
-	// char *msg =  " -*****- CHILD DONE! ret -*****-\n";
-	// (void)write(fileno(stderr), msg, strlen(msg));
-
-
     }
 
 
@@ -174,9 +167,6 @@ void start_parent_app(int stdin_fd, int stdout_fd, int stderr_fd)
     keypad(inputscreen, TRUE);
     scrollok(ioscreen, true);
 
-    wrefresh(ioscreen);
-    wrefresh(inputscreen);
-    refresh();
 
     struct inputstring *inputstr = inputstring_new("");
     int position = 0;
@@ -184,6 +174,12 @@ void start_parent_app(int stdin_fd, int stdout_fd, int stderr_fd)
     int x, y;
 
 
+    wclear(inputscreen);
+    wprintw(inputscreen, INPUT_PROMPT_TEXT" %s", inputstring_get_cstring(inputstr));
+    wmove(inputscreen, 0, INPUT_PROMPT_TEXT_LENGTH + position + 1);  //place the cursor behind the cursor
+    wrefresh(ioscreen);
+    wrefresh(inputscreen);
+    refresh();
 
 
 
@@ -193,6 +189,7 @@ void start_parent_app(int stdin_fd, int stdout_fd, int stderr_fd)
 	ready = poll(pfds, nfds, -1);
         if (ready == -1)
 	    perror("poll");
+	wmove(inputscreen, 0, INPUT_PROMPT_TEXT_LENGTH + position + 1);  //place the cursor behind the cursor
 	wrefresh(ioscreen);
 	wrefresh(inputscreen);
 	refresh();
@@ -204,13 +201,15 @@ void start_parent_app(int stdin_fd, int stdout_fd, int stderr_fd)
 		   (pfds[0].revents & POLLHUP) ? "POLLHUP " : "",
 		   (pfds[0].revents & POLLERR) ? "POLLERR " : "");
 	    if (pfds[0].revents & POLLIN) {
-		n = read(stdout_fd, buffer, 1024);
-		buffer[n] = '\0';
-		// wprintw(ioscreen, "Read %d stdout characters: \n%s\n", n, buffer);
-		wprintw(ioscreen, "%s", buffer);
-		wmove(inputscreen, 0, INPUT_PROMPT_TEXT_LENGTH + position + 1);  //place the cursor behind the cursor
-		wrefresh(ioscreen);
-		wrefresh(inputscreen);
+		while ((n = read(stdout_fd, buffer, 1024)) > 0) {
+		    buffer[n] = '\0';
+		    // wprintw(ioscreen, "Read %d stdout characters: \n%s\n", n, buffer);
+		    wprintw(ioscreen, "%s", buffer);
+		    wrefresh(ioscreen);
+		    wmove(inputscreen, 0, INPUT_PROMPT_TEXT_LENGTH + position + 1);  //place the cursor behind the cursor
+		    
+		    wrefresh(inputscreen);
+		}
 	    }
 	    if (pfds[0].revents & POLLHUP) {
 		print_debug(ioscreen, "STDOUT pipe closed\n");
@@ -225,14 +224,22 @@ void start_parent_app(int stdin_fd, int stdout_fd, int stderr_fd)
 		   (pfds[1].revents & POLLHUP) ? "POLLHUP " : "",
 		   (pfds[1].revents & POLLERR) ? "POLLERR " : "");
 	    if (pfds[1].revents & POLLIN) {
-		n = read(stderr_fd, buffer, 1024);
-		buffer[n] = '\0';
-		// printf("Read %d stderr characters: \n%s\n", n, buffer);
-		// wprintw(ioscreen, "Read %d stderr characters: \n%s\n", n, buffer);
-		wprintw(ioscreen, "%s", buffer);
-		wmove(inputscreen, 0, INPUT_PROMPT_TEXT_LENGTH + position + 1);  //place the cursor behind the cursor
-		wrefresh(ioscreen);
-		wrefresh(inputscreen);
+		while ((n = read(stderr_fd, buffer, 1024)) > 0) {
+		    buffer[n] = '\0';
+		    // wprintw(ioscreen, "Read %d stdout characters: \n%s\n", n, buffer);
+		    wprintw(ioscreen, "%s", buffer);
+		    wrefresh(ioscreen);
+		    wmove(inputscreen, 0, INPUT_PROMPT_TEXT_LENGTH + position + 1);  //place the cursor behind the cursor
+		    wrefresh(inputscreen);
+		}
+		// n = read(stderr_fd, buffer, 1024);
+		// buffer[n] = '\0';
+		// // printf("Read %d stderr characters: \n%s\n", n, buffer);
+		// // wprintw(ioscreen, "Read %d stderr characters: \n%s\n", n, buffer);
+		// wprintw(ioscreen, "%s", buffer);
+		// wmove(inputscreen, 0, INPUT_PROMPT_TEXT_LENGTH + position + 1);  //place the cursor behind the cursor
+		// wrefresh(ioscreen);
+		// wrefresh(inputscreen);
 	    }
 	    if (pfds[1].revents & POLLHUP) {
 		print_debug(ioscreen, "STDERR pipe closed\n");
@@ -251,7 +258,7 @@ void start_parent_app(int stdin_fd, int stdout_fd, int stderr_fd)
 		// buffer[n] = '\0';
 		// printf("Read %d stderr characters: \n%s\n", n, buffer);
 
-		ch = wgetch(inputscreen);
+		ch = getch();
 		switch (ch) {
 		case KEY_ENTER:
 		case 10:
@@ -305,14 +312,11 @@ void start_parent_app(int stdin_fd, int stdout_fd, int stderr_fd)
 	
 		}
 	    wclear(inputscreen);
-	    wrefresh(ioscreen);
-	    wrefresh(inputscreen);
-	    refresh();
 	    wprintw(inputscreen, INPUT_PROMPT_TEXT" %s", inputstring_get_cstring(inputstr));
-	    wmove(inputscreen, 0, INPUT_PROMPT_TEXT_LENGTH + position + 1);  //place the cursor behind the cursor
-	    wrefresh(ioscreen);
+	    // wrefresh(ioscreen);
 	    wrefresh(inputscreen);
-	    refresh();
+	    wmove(inputscreen, 0, INPUT_PROMPT_TEXT_LENGTH + position + 1);  //place the cursor behind the cursor
+	    wrefresh(inputscreen);
 	    }
 	    if (pfds[1].revents & POLLHUP) {
 		print_debug(ioscreen, "STDIN pipe closed\n");
@@ -320,7 +324,6 @@ void start_parent_app(int stdin_fd, int stdout_fd, int stderr_fd)
 	    }
 	}
     }
-
     endwin();
 }
 
