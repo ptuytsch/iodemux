@@ -6,9 +6,11 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include "stringdyn.h"
 #include <poll.h>
 #include <fcntl.h>
+
+#include "log.h"
+#include "stringdyn.h"
 
 #define BUF_INPUT_STR_SIZE 512
 #define INPUT_PROMPT_TEXT ">>>"
@@ -18,9 +20,15 @@ void start_parent_app(int stdin_fd, int stdout_fd, int stderr_fd);
 
 int main(int argc, char **argv)
 {
-    printf("argument count = %u\n", argc);
+    open_logfile("/tmp/iodemux.log");
+    log_set_loglevel(LEVEL_DEBUG);
+    log_debug("///////////////////////////////////");
+    log_info("///////////////////////////////////");
+    log_warning("///////////////////////////////////");
+
+    log_info("argument count = %u", argc);
     for (int i = 0; i < argc; i++) {
-	printf("Argument [%u] = %s\n", i, argv[i]);
+	log_info(" - Argument [%u] = %s", i, argv[i]);
     }
 
     int stdin_pipe[2];
@@ -32,19 +40,19 @@ int main(int argc, char **argv)
 	perror("Pipe stdin: ");
 	return EXIT_FAILURE;
     } else {
-	printf("Opened stdin pipe! %d, %d\n", stdin_pipe[0], stdin_pipe[1]);
+	log_debug("Opened stdin pipe! %d, %d", stdin_pipe[0], stdin_pipe[1]);
     }
     if(pipe2(stdout_pipe, pipe_flags) == -1) {
 	perror("Pipe stdout: ");
 	return EXIT_FAILURE;
     } else {
-	printf("Opened stdout pipe! %d, %d\n", stdout_pipe[0], stdout_pipe[1]);
+	log_debug("Opened stdout pipe! %d, %d", stdout_pipe[0], stdout_pipe[1]);
     }
     if(pipe2(stderr_pipe, pipe_flags) == -1) {
 	perror("Pipeerr: ");
 	return EXIT_FAILURE;
     } else {
-	printf("Opened stderr pipe! %d, %d\n", stderr_pipe[0], stderr_pipe[1]);
+	log_debug("Opened stderr pipe! %d, %d", stderr_pipe[0], stderr_pipe[1]);
     }
 
 
@@ -55,7 +63,7 @@ int main(int argc, char **argv)
 
     if (pid) {
 	// PARENT
-	printf("hello from parent PID = %d\n", pid);
+	log_trace("hello from parent PID = %d", pid);
 
 	// close the unneeded ends of the pipe
 	
@@ -102,25 +110,15 @@ int main(int argc, char **argv)
     }
 
 
+    close_logfile();
     return 0;
-}
-
-
-void print_debug(WINDOW *debugscreen, const char *fmt, ...)
-{
-    /*
-    va_list args;
-    va_start(args, fmt);
-    vwprintw(debugscreen, fmt, args);
-    wrefresh(debugscreen);
-    va_end(args);
-    */
 }
 
 
 void start_parent_app(int stdin_fd, int stdout_fd, int stderr_fd)
 {
 
+    // setup poll events
     struct pollfd *pfds;
     int nfds = 3;
     int num_open_fds = 2;
@@ -136,16 +134,11 @@ void start_parent_app(int stdin_fd, int stdout_fd, int stderr_fd)
     pfds[2].fd = STDIN_FILENO;
     pfds[2].events = POLLIN;
 
-    printf("About to poll()\n");
     int ready;
     int n;
     char buffer[1024];
 
-
-
-    printf("Setting up ncurses\n");
-
-
+    log_debug("Setting up ncurses");
     
     WINDOW *ioscreen;
     WINDOW *inputscreen;
@@ -159,6 +152,7 @@ void start_parent_app(int stdin_fd, int stdout_fd, int stderr_fd)
     hline('=', COLS);
     cbreak();
     noecho();
+    nonl();
     keypad(stdscr, TRUE);
     keypad(inputscreen, TRUE);
     scrollok(ioscreen, true);
@@ -178,8 +172,9 @@ void start_parent_app(int stdin_fd, int stdout_fd, int stderr_fd)
     refresh();
 
 
+    log_info("Starting poll()");
     while(num_open_fds > 0) {
-	print_debug(ioscreen, " ----- POLL ----- \n");
+	log_trace(" ----- POLL ----- ");
 	ready = poll(pfds, nfds, -1);
         if (ready == -1)
 	    perror("poll");
@@ -190,7 +185,7 @@ void start_parent_app(int stdin_fd, int stdout_fd, int stderr_fd)
 
 	// FD index 0 == stdout pipe
 	if (pfds[0].revents != 0) {
-	    print_debug(ioscreen, "  stdOUT; events: %s%s%s\n",
+	    log_trace("  stdOUT; events: %s%s%s",
 		   (pfds[0].revents & POLLIN)  ? "POLLIN "  : "",
 		   (pfds[0].revents & POLLHUP) ? "POLLHUP " : "",
 		   (pfds[0].revents & POLLERR) ? "POLLERR " : "");
@@ -206,14 +201,14 @@ void start_parent_app(int stdin_fd, int stdout_fd, int stderr_fd)
 		}
 	    }
 	    if (pfds[0].revents & POLLHUP) {
-		print_debug(ioscreen, "STDOUT pipe closed\n");
+		log_info("STDOUT pipe closed");
 		num_open_fds--;
 	    }
 	}
 
 	// FD index 0 == stdout pipe
 	if (pfds[1].revents != 0) {
-	    print_debug(ioscreen, "  stdERR; events: %s%s%s\n",
+	    log_trace("  stdERR; events: %s%s%s",
 		   (pfds[1].revents & POLLIN)  ? "POLLIN "  : "",
 		   (pfds[1].revents & POLLHUP) ? "POLLHUP " : "",
 		   (pfds[1].revents & POLLERR) ? "POLLERR " : "");
@@ -228,23 +223,26 @@ void start_parent_app(int stdin_fd, int stdout_fd, int stderr_fd)
 		}
 	    }
 	    if (pfds[1].revents & POLLHUP) {
-		print_debug(ioscreen, "STDERR pipe closed\n");
+		log_info("STDERR pipe closed");
 		num_open_fds--;
 	    }
 	}
 
 	// FD index 2 == stdin
 	if (pfds[2].revents != 0) {
-	    print_debug(ioscreen, "  stdIN; events: %s%s%s\n",
+	    log_trace("  stdIN; events: %s%s%s",
 		   (pfds[2].revents & POLLIN)  ? "POLLIN "  : "",
 		   (pfds[2].revents & POLLHUP) ? "POLLHUP " : "",
 		   (pfds[2].revents & POLLERR) ? "POLLERR " : "");
 	    if (pfds[2].revents & POLLIN) {
 
 		ch = getch();
+		log_debug("Received event for key: %d", ch);
 		switch (ch) {
 		case KEY_ENTER:
 		case 10:
+		case 13:
+		    log_debug("KEY ENTER");
 		    write(stdin_fd, inputstring_get_cstring(inputstr), inputstring_get_length(inputstr));
 		    write(stdin_fd, "\n", 1);
 		    // wprintw(ioscreen, "The entered command is: `%s`\n", inputstring_get_cstring(inputstr));
@@ -254,34 +252,37 @@ void start_parent_app(int stdin_fd, int stdout_fd, int stderr_fd)
 		    wprintw(inputscreen, INPUT_PROMPT_TEXT);
 		    break;
 		case KEY_UP:
+		    log_debug("KEY UP");
 		    // wprintw(ioscreen, "up\n");
 		    break;
 		case KEY_DOWN:
+		    log_debug("KEY DOWN");
 		    // wprintw(ioscreen, "down\n");
 		    break;
 		case KEY_HOME:
+		    log_debug("KEY HOME");
 		    // wprintw(ioscreen, "HOME\n");
 		    position = 0;
 		    break;
 		case KEY_END:
-		    // wprintw(ioscreen, "END\n");
+		    log_debug("KEY END");
 		    position = inputstring_get_length(inputstr);
 		    break;
 		case KEY_LEFT:
-		    // wprintw(ioscreen, "LEFT\n");
+		    log_debug("KEY LEFT");
 		    if (position > 0) position--;
 		    else beep();
 		    break;
 		case KEY_RIGHT:
-		    // wprintw(ioscreen, "RIGHT\n");
+		    log_debug("KEY RIGHT");
 		    if (position < inputstring_get_length(inputstr)) position++;
 		    else beep();
 		    break;
-		
+
 		case KEY_BACKSPACE:
 		case 127:
 		case '\b':
-		    // wprintw(ioscreen, "BACKSPACE\n");
+		    log_debug("KEY BACKSPACE");
 		    if (position > 0) {
 			inputstring_delete_char(inputstr, position);
 			position--;
@@ -289,6 +290,10 @@ void start_parent_app(int stdin_fd, int stdout_fd, int stderr_fd)
 		    else beep();
 		    break;
 		default:
+		    if (ch < 32 || ch > 127) {
+			    log_warning("Unrecognized key input: %d", ch);
+			    break;
+		    }
 		    // wprintw(ioscreen, "CHAR: %d\n", ch);
 		    inputstring_insert_char(inputstr, ch, position);
 		    position++;
@@ -303,7 +308,7 @@ void start_parent_app(int stdin_fd, int stdout_fd, int stderr_fd)
 	    wrefresh(inputscreen);
 	    }
 	    if (pfds[1].revents & POLLHUP) {
-		print_debug(ioscreen, "STDIN pipe closed\n");
+		log_info("STDIN pipe closed");
 		num_open_fds--;
 	    }
 	}
