@@ -22,9 +22,7 @@ int main(int argc, char **argv)
 {
     open_logfile("/tmp/iodemux.log");
     log_set_loglevel(LEVEL_DEBUG);
-    log_debug("///////////////////////////////////");
     log_info("///////////////////////////////////");
-    log_warning("///////////////////////////////////");
 
     log_info("argument count = %u", argc);
     for (int i = 0; i < argc; i++) {
@@ -237,7 +235,7 @@ void start_parent_app(int stdin_fd, int stdout_fd, int stderr_fd)
 	    if (pfds[2].revents & POLLIN) {
 
 		ch = getch();
-		log_debug("Received event for key: %d", ch);
+		log_debug("Received event for key: %d (%c)", ch, (ch > 32 && ch < 128) ? ch : '.');
 		switch (ch) {
 		case KEY_ENTER:
 		case 10:
