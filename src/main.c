@@ -11,6 +11,7 @@
 
 #include "log.h"
 #include "stringdyn.h"
+#include "history.h"
 
 #define BUF_INPUT_STR_SIZE 512
 #define INPUT_PROMPT_TEXT ">>>"
@@ -28,6 +29,9 @@ int main(int argc, char **argv)
     for (int i = 0; i < argc; i++) {
 	log_info(" - Argument [%u] = %s", i, argv[i]);
     }
+
+    history_open_file("/home/ptuytsch/.iodemux_history");
+    history_read_in_file(argv[1]);
 
     int stdin_pipe[2];
     int stdout_pipe[2];
@@ -156,14 +160,14 @@ void start_parent_app(int stdin_fd, int stdout_fd, int stderr_fd)
     scrollok(ioscreen, true);
 
 
-    struct inputstring *inputstr = inputstring_new("");
+    struct stringdyn *inputstr = stringdyn_new("");
     int position = 0;
     int ch;
     int x, y;
 
 
     wclear(inputscreen);
-    wprintw(inputscreen, INPUT_PROMPT_TEXT" %s", inputstring_get_cstring(inputstr));
+    wprintw(inputscreen, INPUT_PROMPT_TEXT" %s", stringdyn_get_cstring(inputstr));
     wmove(inputscreen, 0, INPUT_PROMPT_TEXT_LENGTH + position + 1);  //place the cursor behind the cursor
     wrefresh(ioscreen);
     wrefresh(inputscreen);
@@ -241,20 +245,34 @@ void start_parent_app(int stdin_fd, int stdout_fd, int stderr_fd)
 		case 10:
 		case 13:
 		    log_debug("KEY ENTER");
-		    write(stdin_fd, inputstring_get_cstring(inputstr), inputstring_get_length(inputstr));
+		    history_append(stringdyn_get_cstring(inputstr));
+		    history_reset_cursor();
+		    write(stdin_fd, stringdyn_get_cstring(inputstr), stringdyn_get_length(inputstr));
 		    write(stdin_fd, "\n", 1);
-		    // wprintw(ioscreen, "The entered command is: `%s`\n", inputstring_get_cstring(inputstr));
+		    // wprintw(ioscreen, "The entered command is: `%s`\n", stringdyn_get_cstring(inputstr));
 		    position = 0;
-		    inputstring_reset(inputstr);
+		    stringdyn_reset(inputstr);
 		    wclear(inputscreen);
 		    wprintw(inputscreen, INPUT_PROMPT_TEXT);
 		    break;
 		case KEY_UP:
 		    log_debug("KEY UP");
-		    // wprintw(ioscreen, "up\n");
+		    if (history_move_cursor_to_previous() == 0) {
+			stringdyn_set_cstring(inputstr, history_get_previous_input_ptr());
+			position = stringdyn_get_length(inputstr);
+		    }
 		    break;
 		case KEY_DOWN:
 		    log_debug("KEY DOWN");
+		    if (history_move_cursor_to_next() == 0) {
+			stringdyn_set_cstring(inputstr, history_get_input_ptr());
+			position = stringdyn_get_length(inputstr);
+		    }
+		    else {
+			    history_reset_cursor();
+			    stringdyn_reset(inputstr);
+			    position = 0;
+		    }
 		    // wprintw(ioscreen, "down\n");
 		    break;
 		case KEY_HOME:
@@ -264,7 +282,7 @@ void start_parent_app(int stdin_fd, int stdout_fd, int stderr_fd)
 		    break;
 		case KEY_END:
 		    log_debug("KEY END");
-		    position = inputstring_get_length(inputstr);
+		    position = stringdyn_get_length(inputstr);
 		    break;
 		case KEY_LEFT:
 		    log_debug("KEY LEFT");
@@ -273,7 +291,7 @@ void start_parent_app(int stdin_fd, int stdout_fd, int stderr_fd)
 		    break;
 		case KEY_RIGHT:
 		    log_debug("KEY RIGHT");
-		    if (position < inputstring_get_length(inputstr)) position++;
+		    if (position < stringdyn_get_length(inputstr)) position++;
 		    else beep();
 		    break;
 
@@ -282,7 +300,7 @@ void start_parent_app(int stdin_fd, int stdout_fd, int stderr_fd)
 		case '\b':
 		    log_debug("KEY BACKSPACE");
 		    if (position > 0) {
-			inputstring_delete_char(inputstr, position);
+			stringdyn_delete_char(inputstr, position);
 			position--;
 		    }
 		    else beep();
@@ -293,13 +311,13 @@ void start_parent_app(int stdin_fd, int stdout_fd, int stderr_fd)
 			    break;
 		    }
 		    // wprintw(ioscreen, "CHAR: %d\n", ch);
-		    inputstring_insert_char(inputstr, ch, position);
+		    stringdyn_insert_char(inputstr, ch, position);
 		    position++;
 		    break;
 	
 		}
 	    wclear(inputscreen);
-	    wprintw(inputscreen, INPUT_PROMPT_TEXT" %s", inputstring_get_cstring(inputstr));
+	    wprintw(inputscreen, INPUT_PROMPT_TEXT" %s", stringdyn_get_cstring(inputstr));
 	    // wrefresh(ioscreen);
 	    wrefresh(inputscreen);
 	    wmove(inputscreen, 0, INPUT_PROMPT_TEXT_LENGTH + position + 1);  //place the cursor behind the cursor

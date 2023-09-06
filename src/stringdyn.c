@@ -7,7 +7,7 @@
 #define START_STRING_SIZE 64
 
 
-struct inputstring{
+struct stringdyn{
     char *content;
     size_t length;
     size_t capacity;
@@ -15,25 +15,32 @@ struct inputstring{
 
 //===========================================
 
-int inputstring_expand_capacity(struct inputstring *self)
+int stringdyn_expand_capacity(struct stringdyn *self)
 {
-    size_t new_size = self->capacity * 2;
-    void *ptr = malloc(new_size);
-    if (ptr == NULL) {
-        perror("MALLOC inputstring, expand");
+    char *new_content = realloc(self->content, self->capacity * 2);
+    if (new_content == NULL) {
         return -1;
     }
-    memcpy(ptr, self->content, self->capacity);
-    free(self->content);
-    self->content = ptr;
-    self->capacity = new_size;
+    self->content = new_content;
+    self->capacity *= 2;
     return 0;
+    // size_t new_size = self->capacity * 2;
+    // void *ptr = malloc(new_size);
+    // if (ptr == NULL) {
+    //     perror("MALLOC stringdyn, expand");
+    //     return -1;
+    // }
+    // memcpy(ptr, self->content, self->capacity);
+    // free(self->content);
+    // self->content = ptr;
+    // self->capacity = new_size;
+    // return 0;
 }
 
 
-void inputstring_print_internals(struct inputstring *self)
+void stringdyn_print_internals(struct stringdyn *self)
 {
-    printf("inputstring @ %p\n", self);
+    printf("stringdyn @ %p\n", self);
     printf("content: %s\n", self->content);
     printf("length: %lu\n", self->length);
     printf("capacity: %lu\n", self->capacity);
@@ -41,11 +48,11 @@ void inputstring_print_internals(struct inputstring *self)
 
 //===========================================
 
-int inputstring_init(struct inputstring *self)
+int stringdyn_init(struct stringdyn *self)
 {
     void *ptr = malloc(START_STRING_SIZE);
     if (ptr == NULL) {
-        perror("MALLOC inputstring");
+        perror("MALLOC stringdyn");
         return -1;
     }
     self->content = ptr;
@@ -56,31 +63,31 @@ int inputstring_init(struct inputstring *self)
 }
 
 
-int inputstring_deinit(struct inputstring *self)
+int stringdyn_deinit(struct stringdyn *self)
 {
     free(self->content);
     return 0;
 }
 
 
-int inputstring_concat_cstring(struct inputstring *self, const char *str)
+int stringdyn_concat_cstring(struct stringdyn *self, const char *str)
 {
     size_t str_len = strlen(str);
     while (str_len + self->length > self->capacity) {
-        inputstring_expand_capacity(self);
+        stringdyn_expand_capacity(self);
     }
     strcat(self->content, str);
     self->length += str_len;
     return 0;
 }
-int inputstring_insert_cstring(struct inputstring *self, const char *str, size_t position)
+int stringdyn_insert_cstring(struct stringdyn *self, const char *str, size_t position)
 {
     size_t str_len = strlen(str);
     if (position > self->length) {
         return -1;
     }
     if (str_len + self->length > self->capacity) {
-        inputstring_expand_capacity(self);
+        stringdyn_expand_capacity(self);
     }
     memmove(self->content + position + str_len,
             self->content + position,
@@ -93,23 +100,23 @@ int inputstring_insert_cstring(struct inputstring *self, const char *str, size_t
 }
 
 
-int inputstring_append_char(struct inputstring *self, const char ch)
+int stringdyn_append_char(struct stringdyn *self, const char ch)
 {
     if (1 + self->length > self->capacity) {
-        inputstring_expand_capacity(self);
+        stringdyn_expand_capacity(self);
     }
     self->content[self->length] = ch;
     self->content[self->length + 1] = '\0';
     return 0;
 }
 
-int inputstring_insert_char(struct inputstring *self, const char ch, size_t position)
+int stringdyn_insert_char(struct stringdyn *self, const char ch, size_t position)
 {
     if (position > self->length) {
         return -1;
     }
     if (1 + self->length > self->capacity) {
-        inputstring_expand_capacity(self);
+        stringdyn_expand_capacity(self);
     }
     memmove(self->content + position +1,
             self->content + position,
@@ -119,7 +126,7 @@ int inputstring_insert_char(struct inputstring *self, const char ch, size_t posi
     return 0;
 }
 
-int inputstring_delete_char(struct inputstring *self, size_t position)
+int stringdyn_delete_char(struct stringdyn *self, size_t position)
 {
     if (position > self->length) {
         return -1;
@@ -132,28 +139,28 @@ int inputstring_delete_char(struct inputstring *self, size_t position)
 }
 
 
-void inputstring_reset(struct inputstring *self)
+void stringdyn_reset(struct stringdyn *self)
 {
     self->length = 0;
     self->content[0] = '\0';
 }
 
 
-struct inputstring * inputstring_new(const char * str)
+struct stringdyn * stringdyn_new(const char * str)
 {
-    void *ptr = malloc(sizeof(struct inputstring));
+    void *ptr = malloc(sizeof(struct stringdyn));
     if (ptr == NULL) {
-        perror("MALLOC new inputstring");
+        perror("MALLOC new stringdyn");
         return NULL;
     }
-    struct inputstring *self = (struct inputstring *) ptr;
+    struct stringdyn *self = (struct stringdyn *) ptr;
 
-    int ret = inputstring_init(self);
+    int ret = stringdyn_init(self);
     if (ret != 0) {
         return NULL;
     }
 
-    ret = inputstring_concat_cstring(self, str);
+    ret = stringdyn_concat_cstring(self, str);
     if (ret != 0) {
         return NULL;
     }
@@ -161,12 +168,23 @@ struct inputstring * inputstring_new(const char * str)
     return self;
 }
 
-const char * inputstring_get_cstring(struct inputstring *self)
+const char * stringdyn_get_cstring(struct stringdyn *self)
 {
     return (const char *)self->content;
 }
 
-size_t inputstring_get_length(struct inputstring *self)
+int stringdyn_set_cstring(struct stringdyn *self, const char *str)
+{
+    size_t str_len = strlen(str);
+    while (str_len > self->capacity) {
+        stringdyn_expand_capacity(self);
+    }
+    strcpy(self->content, str);
+    self->length = str_len;
+    return 0;
+}
+
+size_t stringdyn_get_length(struct stringdyn *self)
 {
     return (size_t)self->length;
 }
