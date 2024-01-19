@@ -22,7 +22,7 @@ void start_parent_app(int stdin_fd, int stdout_fd, int stderr_fd);
 int main(int argc, char **argv)
 {
     open_logfile("/tmp/iodemux.log");
-    log_set_loglevel(LEVEL_DEBUG);
+    log_set_loglevel(LEVEL_INFO);
     log_info("///////////////////////////////////");
 
     log_info("argument count = %u", argc);
@@ -30,8 +30,8 @@ int main(int argc, char **argv)
 	log_info(" - Argument [%u] = %s", i, argv[i]);
     }
 
-    history_open_file("/home/ptuytsch/.iodemux_history");
-    history_read_in_file(argv[1]);
+    // history_open_file("/home/ptuytsch/.iodemux_history");
+    // history_read_in_file(argv[1]);
 
     int stdin_pipe[2];
     int stdout_pipe[2];
@@ -258,15 +258,15 @@ void start_parent_app(int stdin_fd, int stdout_fd, int stderr_fd)
 		case KEY_UP:
 		    log_debug("KEY UP");
 		    if (history_move_cursor_to_previous() == 0) {
-			stringdyn_set_cstring(inputstr, history_get_previous_input_ptr());
-			position = stringdyn_get_length(inputstr);
+                stringdyn_set_cstring(inputstr, history_get_previous_input_ptr());
+                position = stringdyn_get_length(inputstr);
 		    }
 		    break;
 		case KEY_DOWN:
 		    log_debug("KEY DOWN");
 		    if (history_move_cursor_to_next() == 0) {
-			stringdyn_set_cstring(inputstr, history_get_input_ptr());
-			position = stringdyn_get_length(inputstr);
+                stringdyn_set_cstring(inputstr, history_get_input_ptr());
+                position = stringdyn_get_length(inputstr);
 		    }
 		    else {
 			    history_reset_cursor();

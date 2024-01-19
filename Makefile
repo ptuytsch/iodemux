@@ -80,3 +80,7 @@ distclean:
 run: $(TARGET)
 	#@./$(TARGET) ls -alh --color
 	@./$(TARGET) python test.py
+
+install: $(TARGET)
+	cp ./$(TARGET) ~/.local/bin
+

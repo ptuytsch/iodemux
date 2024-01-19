@@ -76,15 +76,15 @@ int log_msg(int level, const char *format, ...)
 
     va_start(args, format);
     snprintf(fmt, 128,
-	     "%s:%03ld | %s | %s\n",
-	     time_str,
-	     curr_time.tv_nsec / 1000000,
-	     log_get_log_level_str(level),
-	     format);
+        "%s:%03ld | %s | %s\n",
+        time_str,
+        curr_time.tv_nsec / 1000000,
+        log_get_log_level_str(level),
+        format);
 
     ret = vfprintf(l.file, fmt, args);
     if (ret < 0) {
-	perror("Log line");
+    perror("Log line");
     }
 
     va_end(args);
